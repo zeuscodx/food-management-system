@@ -12,10 +12,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const dataDir = path.join(rootDir, 'data');
-const dbPath = path.join(dataDir, 'food_management.db');
+const dbPath = process.env.DATABASE_PATH
+  ? path.resolve(process.env.DATABASE_PATH)
+  : path.join(dataDir, 'food_management.db');
 const distDir = path.join(rootDir, 'dist');
 
-fs.mkdirSync(dataDir, { recursive: true });
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 const app = express();
 const db = new sqlite3.Database(dbPath);

@@ -1,26 +1,31 @@
-# React + Vite
+# Food Management System
 
-## Local setup
+Food-management web application built with React, Vite, Express, and SQLite.
 
-1. Copy `.env.example` to `.env` and replace both placeholder values with unique secrets.
-2. Set `JWT_SECRET` to a random value of at least 32 characters.
-3. `ADMIN_PASSWORD` is used only to create the initial `admin` account when the database has no users. Existing local accounts are not changed.
-4. Keep `.env` and the local SQLite database private; both are excluded by `.gitignore`.
-5. Run `npm install`, then `npm run dev`.
+## Run locally
 
-The server requires `JWT_SECRET` on every start. `ADMIN_PASSWORD` is required only when initializing a new, empty database. Do not use the example placeholder values in a deployed environment.
+1. Install Node.js 20.19 or later.
+2. Copy `.env.example` to `.env` and replace both placeholder values with unique secrets.
+3. Set `JWT_SECRET` to a random value of at least 32 characters.
+4. `ADMIN_PASSWORD` is used only to create the initial `admin` account when the database has no users. Existing accounts are not changed.
+5. Install dependencies and start the app:
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+   ```sh
+   npm install
+   npm run dev
+   ```
 
-Currently, two official plugins are available:
+The development frontend is served by Vite, and the API runs on port 3001. For production, `npm run build` creates the frontend bundle and `npm start` serves the API and bundle together.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Deploy to Railway
 
-## React Compiler
+1. Create a Railway project and deploy this GitHub repository as a service. Railway reads [`railway.json`](./railway.json) for the build, start, health-check, and restart settings.
+2. Before the first deployment, add a Railway Volume to the service and mount it at `/data`. SQLite data must live on this persistent volume or it can be lost when the service is redeployed.
+3. In the service's Variables settings, set:
+   - `JWT_SECRET`: a unique random value of at least 32 characters.
+   - `ADMIN_PASSWORD`: a unique initial admin password. It is only required when creating a fresh database with no users.
+   - `DATABASE_PATH`: `/data/food_management.db`
+4. Deploy the service. Railway supplies `PORT`; the server listens on that port and `/api/health` is used as the health check.
+5. Open the generated Railway domain and sign in as `admin` using the `ADMIN_PASSWORD` set before the first deployment. Change or rotate credentials as appropriate.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Keep these values in Railway Variables, not in GitHub. Never upload `.env` files or the local SQLite database. Back up the mounted database volume regularly.
