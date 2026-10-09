@@ -1,0 +1,42 @@
+# Environment variables and credentials
+.env
+.env.*
+!.env.example
+!.env.sample
+.envrc
+
+# Dependencies and generated build output
+node_modules/
+dist/
+dist-ssr/
+coverage/
+*.local
+
+# Local databases, journals, and backups
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite-journal
+*.sqlite3-journal
+*.bak
+*.backup
+
+# Temporary logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Editors and operating systems
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Isolated nested Git metadata directory in this workspace
+/food-management-system/
