@@ -4,7 +4,7 @@ Food-management web application built with React, Vite, Express, and SQLite.
 
 ## Run locally
 
-1. Install Node.js 20.19 or later.
+1. Install Node.js 22.
 2. Copy `.env.example` to `.env` and replace both placeholder values with unique secrets.
 3. Set `JWT_SECRET` to a random value of at least 32 characters.
 4. `ADMIN_PASSWORD` is used only to create the initial `admin` account when the database has no users. Existing accounts are not changed.

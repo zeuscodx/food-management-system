@@ -2,6 +2,9 @@
   "name": "food-management-system",
   "private": true,
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22 <25"
+  },
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
