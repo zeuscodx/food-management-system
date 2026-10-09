@@ -29,3 +29,7 @@ The development frontend is served by Vite, and the API runs on port 3001. For p
 5. Open the generated Railway domain and sign in as `admin` using the `ADMIN_PASSWORD` set before the first deployment. Change or rotate credentials as appropriate.
 
 Keep these values in Railway Variables, not in GitHub. Never upload `.env` files or the local SQLite database. Back up the mounted database volume regularly.
+
+## User registration
+
+Anyone with access to the public site can create an account from the login page. New accounts receive the `Employee` role and can sign in immediately. Employees can view application data and record inventory transactions and distributions. Only administrators can create, edit, or delete sectors, centers, people, and items, or change system settings. Usernames must be 3-32 lowercase English letters, numbers, dots, underscores, or hyphens; passwords must be at least 8 characters. Public registration does not require email verification.

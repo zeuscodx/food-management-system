@@ -311,6 +311,13 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function requireAdmin(req, res, next) {
+  if (req.user.role !== 'Admin') {
+    return res.status(403).json({ message: 'هذه العملية متاحة للمدير فقط.' });
+  }
+  next();
+}
+
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
 
@@ -333,6 +340,46 @@ app.post('/api/auth/login', async (req, res) => {
   const token = jwt.sign({ id: user.id, username: user.username, name: user.name, role: user.role }, JWT_SECRET, { expiresIn: '8h' });
   await logActivity('تسجيل دخول', `تم تسجيل الدخول بواسطة ${user.name}`, user.id);
   res.json({ token, user: { id: user.id, username: user.username, name: user.name, role: user.role } });
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  const { username: rawUsername, name: rawName, password } = req.body || {};
+  const username = typeof rawUsername === 'string' ? rawUsername.trim().toLowerCase() : '';
+  const name = typeof rawName === 'string' ? rawName.trim() : '';
+
+  if (!/^[a-z0-9_.-]{3,32}$/.test(username)) {
+    return res.status(400).json({ message: 'اسم المستخدم يجب أن يكون من 3 إلى 32 حرفًا ويحتوي على أحرف إنجليزية أو أرقام أو . _ - فقط.' });
+  }
+  if (name.length < 2 || name.length > 80) {
+    return res.status(400).json({ message: 'الاسم يجب أن يكون من حرفين إلى 80 حرفًا.' });
+  }
+  if (typeof password !== 'string' || password.length < 8 || Buffer.byteLength(password, 'utf8') > 72) {
+    return res.status(400).json({ message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل ولا تتجاوز 72 بايت.' });
+  }
+
+  const existingUser = await get('SELECT id FROM users WHERE username = ?', [username]);
+  if (existingUser) {
+    return res.status(409).json({ message: 'اسم المستخدم مستخدم بالفعل.' });
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  let result;
+  try {
+    result = await run(
+      'INSERT INTO users (username, password_hash, name, role, status) VALUES (?, ?, ?, ?, ?)',
+      [username, passwordHash, name, 'Employee', 'active'],
+    );
+  } catch (error) {
+    if (error.code === 'SQLITE_CONSTRAINT') {
+      return res.status(409).json({ message: 'اسم المستخدم مستخدم بالفعل.' });
+    }
+    throw error;
+  }
+
+  const user = { id: result.id, username, name, role: 'Employee' };
+  const token = jwt.sign(user, JWT_SECRET, { expiresIn: '8h' });
+  await logActivity('إنشاء حساب', `تم إنشاء حساب جديد باسم ${name}`, user.id);
+  res.status(201).json({ token, user });
 });
 
 app.get('/api/auth/session', requireAuth, (req, res) => {
@@ -453,7 +500,7 @@ app.get('/api/sectors', requireAuth, async (req, res) => {
   res.json(sectors);
 });
 
-app.post('/api/sectors', requireAuth, async (req, res) => {
+app.post('/api/sectors', requireAuth, requireAdmin, async (req, res) => {
   const { name, code, notes, status } = req.body || {};
   if (!name || !code) {
     return res.status(400).json({ message: 'اسم القطاع والكود مطلوبان.' });
@@ -473,7 +520,7 @@ app.post('/api/sectors', requireAuth, async (req, res) => {
   res.status(201).json(saved);
 });
 
-app.put('/api/sectors/:id', requireAuth, async (req, res) => {
+app.put('/api/sectors/:id', requireAuth, requireAdmin, async (req, res) => {
   const { name, code, notes, status } = req.body || {};
   const id = Number(req.params.id);
   if (!name || !code) {
@@ -494,7 +541,7 @@ app.put('/api/sectors/:id', requireAuth, async (req, res) => {
   res.json(updated);
 });
 
-app.delete('/api/sectors/:id', requireAuth, async (req, res) => {
+app.delete('/api/sectors/:id', requireAuth, requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const sector = await get('SELECT * FROM sectors WHERE id = ?', [id]);
   if (!sector) {
@@ -510,7 +557,7 @@ app.delete('/api/sectors/:id', requireAuth, async (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/api/centers', requireAuth, async (req, res) => {
+app.post('/api/centers', requireAuth, requireAdmin, async (req, res) => {
   const { name, code, sector_id, people_count, notes, status } = req.body || {};
   if (!name || !code || !sector_id) {
     return res.status(400).json({ message: 'اسم المركز والكود والقطاع مطلوبة.' });
@@ -535,7 +582,7 @@ app.post('/api/centers', requireAuth, async (req, res) => {
   res.status(201).json(saved);
 });
 
-app.put('/api/centers/:id', requireAuth, async (req, res) => {
+app.put('/api/centers/:id', requireAuth, requireAdmin, async (req, res) => {
   const { name, code, sector_id, people_count, notes, status } = req.body || {};
   const id = Number(req.params.id);
 
@@ -557,7 +604,7 @@ app.put('/api/centers/:id', requireAuth, async (req, res) => {
   res.json(updated);
 });
 
-app.delete('/api/centers/:id', requireAuth, async (req, res) => {
+app.delete('/api/centers/:id', requireAuth, requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   await run('DELETE FROM centers WHERE id = ?', [id]);
   await run('DELETE FROM people WHERE center_id = ?', [id]);
@@ -575,7 +622,7 @@ app.get('/api/people', requireAuth, async (req, res) => {
   res.json(rows);
 });
 
-app.post('/api/people', requireAuth, async (req, res) => {
+app.post('/api/people', requireAuth, requireAdmin, async (req, res) => {
   const { name, code, center_id, notes, status } = req.body || {};
   if (!name || !code || !center_id) {
     return res.status(400).json({ message: 'اسم الشخص والكود والمركز مطلوبان.' });
@@ -606,7 +653,7 @@ app.post('/api/people', requireAuth, async (req, res) => {
   res.status(201).json(saved);
 });
 
-app.put('/api/people/:id', requireAuth, async (req, res) => {
+app.put('/api/people/:id', requireAuth, requireAdmin, async (req, res) => {
   const { name, code, center_id, notes, status } = req.body || {};
   const id = Number(req.params.id);
 
@@ -646,7 +693,7 @@ app.put('/api/people/:id', requireAuth, async (req, res) => {
   res.json(updated);
 });
 
-app.delete('/api/people/:id', requireAuth, async (req, res) => {
+app.delete('/api/people/:id', requireAuth, requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   const person = await get('SELECT * FROM people WHERE id = ?', [id]);
   if (!person) {
@@ -668,7 +715,7 @@ app.get('/api/items', requireAuth, async (req, res) => {
   res.json(items);
 });
 
-app.post('/api/items', requireAuth, async (req, res) => {
+app.post('/api/items', requireAuth, requireAdmin, async (req, res) => {
   const { name, code, category, unit, quantity_per_person, min_stock, notes, status } = req.body || {};
   if (!name || !code) {
     return res.status(400).json({ message: 'اسم الصنف والكود مطلوبان.' });
@@ -694,7 +741,7 @@ app.post('/api/items', requireAuth, async (req, res) => {
   res.status(201).json(saved);
 });
 
-app.put('/api/items/:id', requireAuth, async (req, res) => {
+app.put('/api/items/:id', requireAuth, requireAdmin, async (req, res) => {
   const { name, code, category, unit, quantity_per_person, min_stock, notes, status } = req.body || {};
   const id = Number(req.params.id);
 
@@ -717,7 +764,7 @@ app.put('/api/items/:id', requireAuth, async (req, res) => {
   res.json(updated);
 });
 
-app.delete('/api/items/:id', requireAuth, async (req, res) => {
+app.delete('/api/items/:id', requireAuth, requireAdmin, async (req, res) => {
   const id = Number(req.params.id);
   await run('DELETE FROM items WHERE id = ?', [id]);
   await run('DELETE FROM inventory WHERE item_id = ?', [id]);
@@ -896,7 +943,7 @@ app.get('/api/settings', requireAuth, async (req, res) => {
   res.json(settings || { company_name: 'نظام إدارة الاحتياجات', currency: 'ريال', alert_threshold: 20, report_footer: 'مستند صادر من النظام' });
 });
 
-app.put('/api/settings', requireAuth, async (req, res) => {
+app.put('/api/settings', requireAuth, requireAdmin, async (req, res) => {
   const { company_name, currency, alert_threshold, report_footer } = req.body || {};
   const current = await get('SELECT * FROM settings ORDER BY id DESC LIMIT 1');
 

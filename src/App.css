@@ -438,6 +438,21 @@
   font-size: 0.85rem;
 }
 
+.auth-switch {
+  display: block;
+  margin: 1rem auto 0;
+  padding: 0.25rem;
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font: inherit;
+  cursor: pointer;
+}
+
+.auth-switch:hover {
+  text-decoration: underline;
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;

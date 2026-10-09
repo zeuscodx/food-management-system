@@ -158,6 +158,8 @@ function App() {
   const [settingsForm, setSettingsForm] = useState(initialSettingsForm);
 
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [registerForm, setRegisterForm] = useState({ username: '', name: '', password: '', confirmPassword: '' });
+  const [authMode, setAuthMode] = useState('login');
   const [centerModalOpen, setCenterModalOpen] = useState(false);
   const [sectorModalOpen, setSectorModalOpen] = useState(false);
   const [personModalOpen, setPersonModalOpen] = useState(false);
@@ -170,6 +172,7 @@ function App() {
   const [selectedSectorId, setSelectedSectorId] = useState('all');
   const [reportCenterId, setReportCenterId] = useState('all');
   const [reportItemId, setReportItemId] = useState('all');
+  const isAdmin = user?.role === 'Admin';
 
   const apiRequest = async (path, method = 'GET', body) => {
     const headers = { 'Content-Type': 'application/json' };
@@ -317,6 +320,31 @@ function App() {
       showToast('تم تسجيل الدخول بنجاح');
     } catch (error) {
       showToast(error.message || 'فشل تسجيل الدخول');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async (event) => {
+    event.preventDefault();
+    if (registerForm.password !== registerForm.confirmPassword) {
+      showToast('كلمتا المرور غير متطابقتين');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await apiRequest('/auth/register', 'POST', {
+        username: registerForm.username,
+        name: registerForm.name,
+        password: registerForm.password,
+      });
+      localStorage.setItem('token', result.token);
+      setToken(result.token);
+      setUser(result.user);
+      showToast('تم إنشاء الحساب وتسجيل الدخول بنجاح');
+    } catch (error) {
+      showToast(error.message || 'تعذر إنشاء الحساب');
     } finally {
       setLoading(false);
     }
@@ -654,10 +682,12 @@ function App() {
                 <p className="eyebrow">إدارة القطاعات والمراكز</p>
                 <h2>القطاعات والمراكز</h2>
               </div>
-              <div className="button-group">
-                <button className="ghost-btn" onClick={() => openSectorModal()}>+ إضافة قطاع</button>
-                <button className="primary-btn" onClick={() => openCenterModal()}>+ إضافة مركز</button>
-              </div>
+              {isAdmin && (
+                <div className="button-group">
+                  <button className="ghost-btn" onClick={() => openSectorModal()}>+ إضافة قطاع</button>
+                  <button className="primary-btn" onClick={() => openCenterModal()}>+ إضافة مركز</button>
+                </div>
+              )}
             </div>
             <div className="toolbar">
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث عن مركز..." />
@@ -681,18 +711,20 @@ function App() {
                           <h3>{sector.name}</h3>
                           <p>{sector.code} · {formatNumber(sectorCenters.length)} مراكز</p>
                         </div>
-                        <div className="button-group">
-                          <button className="primary-btn" onClick={() => openCenterModal(null, sector.id)}>+ إضافة مركز للقطاع</button>
-                          <button className="ghost-btn" onClick={() => openSectorModal(sector)}>تعديل القطاع</button>
-                          <button
-                            className="danger-btn"
-                            disabled={Number(sector.centers_count) > 0}
-                            title={Number(sector.centers_count) > 0 ? 'انقل المراكز قبل حذف القطاع' : 'حذف القطاع'}
-                            onClick={() => deleteSector(sector.id)}
-                          >
-                            حذف القطاع
-                          </button>
-                        </div>
+                        {isAdmin && (
+                          <div className="button-group">
+                            <button className="primary-btn" onClick={() => openCenterModal(null, sector.id)}>+ إضافة مركز للقطاع</button>
+                            <button className="ghost-btn" onClick={() => openSectorModal(sector)}>تعديل القطاع</button>
+                            <button
+                              className="danger-btn"
+                              disabled={Number(sector.centers_count) > 0}
+                              title={Number(sector.centers_count) > 0 ? 'انقل المراكز قبل حذف القطاع' : 'حذف القطاع'}
+                              onClick={() => deleteSector(sector.id)}
+                            >
+                              حذف القطاع
+                            </button>
+                          </div>
+                        )}
                       </div>
                       <div className="table-wrap">
                         <table>
@@ -703,7 +735,7 @@ function App() {
                               <th>عدد الأشخاص</th>
                               <th>الحالة</th>
                               <th>ملاحظات</th>
-                              <th>إجراءات</th>
+                              {isAdmin && <th>إجراءات</th>}
                             </tr>
                           </thead>
                           <tbody>
@@ -714,14 +746,16 @@ function App() {
                                 <td>{formatNumber(center.people_count)}</td>
                                 <td><span className={`status-tag ${center.status === 'active' ? 'success' : 'muted'}`}>{center.status === 'active' ? 'نشط' : 'غير نشط'}</span></td>
                                 <td>{center.notes || '—'}</td>
-                                <td className="row-actions">
-                                  <button className="ghost-btn" onClick={() => openCenterModal(center)}>تعديل</button>
-                                  <button className="danger-btn" onClick={() => deleteCenter(center.id)}>حذف</button>
-                                </td>
+                                {isAdmin && (
+                                  <td className="row-actions">
+                                    <button className="ghost-btn" onClick={() => openCenterModal(center)}>تعديل</button>
+                                    <button className="danger-btn" onClick={() => deleteCenter(center.id)}>حذف</button>
+                                  </td>
+                                )}
                               </tr>
                             ))}
                             {!sectorCenters.length && (
-                              <tr><td colSpan="6">لا توجد مراكز بهذا القطاع بعد</td></tr>
+                              <tr><td colSpan={isAdmin ? 6 : 5}>لا توجد مراكز بهذا القطاع بعد</td></tr>
                             )}
                           </tbody>
                         </table>
@@ -778,7 +812,7 @@ function App() {
                 <p className="eyebrow">إدارة الأصناف</p>
                 <h2>الأصناف</h2>
               </div>
-              <button className="primary-btn" onClick={() => openItemModal()}>+ إضافة صنف</button>
+              {isAdmin && <button className="primary-btn" onClick={() => openItemModal()}>+ إضافة صنف</button>}
             </div>
             <div className="toolbar">
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث عن صنف..." />
@@ -794,7 +828,7 @@ function App() {
                     <th>حصة الشخص</th>
                     <th>الحد الأدنى</th>
                     <th>الحالة</th>
-                    <th>إجراءات</th>
+                    {isAdmin && <th>إجراءات</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -807,10 +841,12 @@ function App() {
                       <td>{formatNumber(item.quantity_per_person)}</td>
                       <td>{formatNumber(item.min_stock)}</td>
                       <td><span className={`status-tag ${item.status === 'active' ? 'success' : 'muted'}`}>{item.status === 'active' ? 'نشط' : 'غير نشط'}</span></td>
-                      <td className="row-actions">
-                        <button className="ghost-btn" onClick={() => openItemModal(item)}>تعديل</button>
-                        <button className="danger-btn" onClick={() => deleteItem(item.id)}>حذف</button>
-                      </td>
+                      {isAdmin && (
+                        <td className="row-actions">
+                          <button className="ghost-btn" onClick={() => openItemModal(item)}>تعديل</button>
+                          <button className="danger-btn" onClick={() => deleteItem(item.id)}>حذف</button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -1073,11 +1109,12 @@ function App() {
             <div className="module-grid">
               <div className="card form-card wide-card">
                 <form onSubmit={saveSettings} className="stack-form">
-                  <input value={settingsForm.company_name} onChange={(e) => setSettingsForm({ ...settingsForm, company_name: e.target.value })} placeholder="اسم المؤسسة" />
-                  <input value={settingsForm.currency} onChange={(e) => setSettingsForm({ ...settingsForm, currency: e.target.value })} placeholder="العملة" />
-                  <input type="number" value={settingsForm.alert_threshold} onChange={(e) => setSettingsForm({ ...settingsForm, alert_threshold: e.target.value })} placeholder="حد التنبيهات" />
-                  <textarea value={settingsForm.report_footer} rows="4" onChange={(e) => setSettingsForm({ ...settingsForm, report_footer: e.target.value })} placeholder="تذييل التقارير" />
-                  <button type="submit" className="primary-btn">حفظ الإعدادات</button>
+                  {!isAdmin && <p className="login-note">يمكن للمدير فقط تعديل إعدادات النظام.</p>}
+                  <input disabled={!isAdmin} value={settingsForm.company_name} onChange={(e) => setSettingsForm({ ...settingsForm, company_name: e.target.value })} placeholder="اسم المؤسسة" />
+                  <input disabled={!isAdmin} value={settingsForm.currency} onChange={(e) => setSettingsForm({ ...settingsForm, currency: e.target.value })} placeholder="العملة" />
+                  <input disabled={!isAdmin} type="number" value={settingsForm.alert_threshold} onChange={(e) => setSettingsForm({ ...settingsForm, alert_threshold: e.target.value })} placeholder="حد التنبيهات" />
+                  <textarea disabled={!isAdmin} value={settingsForm.report_footer} rows="4" onChange={(e) => setSettingsForm({ ...settingsForm, report_footer: e.target.value })} placeholder="تذييل التقارير" />
+                  {isAdmin && <button type="submit" className="primary-btn">حفظ الإعدادات</button>}
                 </form>
               </div>
             </div>
@@ -1096,25 +1133,83 @@ function App() {
             <div className="brand-badge">ن</div>
             <div>
               <p className="eyebrow">نظام إدارة الاحتياجات</p>
-              <h1>تسجيل الدخول</h1>
+              <h1>{authMode === 'login' ? 'تسجيل الدخول' : 'إنشاء حساب جديد'}</h1>
             </div>
           </div>
 
-          <form onSubmit={handleLogin} className="stack-form">
-            <input
-              value={loginForm.username}
-              onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
-              placeholder="اسم المستخدم"
-            />
-            <input
-              type="password"
-              value={loginForm.password}
-              onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-              placeholder="كلمة المرور"
-            />
-            <button type="submit" className="primary-btn" disabled={loading}>تسجيل الدخول</button>
-          </form>
-          <p className="login-note">الحساب الأول يُنشأ باستخدام ADMIN_PASSWORD عند تهيئة قاعدة بيانات جديدة.</p>
+          {authMode === 'login' ? (
+            <>
+              <form onSubmit={handleLogin} className="stack-form">
+                <input
+                  value={loginForm.username}
+                  onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                  placeholder="اسم المستخدم"
+                  autoComplete="username"
+                  required
+                />
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                  placeholder="كلمة المرور"
+                  autoComplete="current-password"
+                  required
+                />
+                <button type="submit" className="primary-btn" disabled={loading}>تسجيل الدخول</button>
+              </form>
+              <button type="button" className="auth-switch" onClick={() => setAuthMode('register')}>
+                إنشاء حساب جديد
+              </button>
+              <p className="login-note">الحساب الأول يُنشأ باستخدام ADMIN_PASSWORD عند تهيئة قاعدة بيانات جديدة.</p>
+            </>
+          ) : (
+            <>
+              <form onSubmit={handleRegister} className="stack-form">
+                <input
+                  value={registerForm.name}
+                  onChange={(e) => setRegisterForm({ ...registerForm, name: e.target.value })}
+                  placeholder="الاسم الكامل"
+                  autoComplete="name"
+                  maxLength="80"
+                  required
+                />
+                <input
+                  value={registerForm.username}
+                  onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
+                  placeholder="اسم المستخدم (3 أحرف على الأقل)"
+                  autoComplete="username"
+                  minLength="3"
+                  maxLength="32"
+                  required
+                />
+                <input
+                  type="password"
+                  value={registerForm.password}
+                  onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
+                  placeholder="كلمة المرور (8 أحرف على الأقل)"
+                  autoComplete="new-password"
+                  minLength="8"
+                  maxLength="72"
+                  required
+                />
+                <input
+                  type="password"
+                  value={registerForm.confirmPassword}
+                  onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
+                  placeholder="تأكيد كلمة المرور"
+                  autoComplete="new-password"
+                  minLength="8"
+                  maxLength="72"
+                  required
+                />
+                <button type="submit" className="primary-btn" disabled={loading}>إنشاء الحساب</button>
+              </form>
+              <button type="button" className="auth-switch" onClick={() => setAuthMode('login')}>
+                لدي حساب بالفعل — تسجيل الدخول
+              </button>
+              <p className="login-note">التسجيل متاح للجميع، والحسابات الجديدة تحصل على صلاحيات موظف.</p>
+            </>
+          )}
         </div>
       </div>
     );
