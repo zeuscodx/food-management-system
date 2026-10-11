@@ -129,6 +129,7 @@ function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
   const [user, setUser] = useState(null);
   const [currentPage, setCurrentPage] = useState('dashboard');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState('');
 
@@ -173,6 +174,11 @@ function App() {
   const [reportCenterId, setReportCenterId] = useState('all');
   const [reportItemId, setReportItemId] = useState('all');
   const isAdmin = user?.role === 'Admin';
+
+  const selectPage = (page) => {
+    setCurrentPage(page);
+    setMobileMenuOpen(false);
+  };
 
   const apiRequest = async (path, method = 'GET', body) => {
     const headers = { 'Content-Type': 'application/json' };
@@ -775,7 +781,7 @@ function App() {
                 <p className="eyebrow">إجمالي عدد السكان</p>
                 <h2>الأعداد الإجمالية للمراكز</h2>
               </div>
-              <button className="primary-btn" onClick={() => setCurrentPage('centers')}>العودة للمراكز</button>
+              <button className="primary-btn" onClick={() => selectPage('centers')}>العودة للمراكز</button>
             </div>
             <div className="card info-card">
               <p>يتم إدخال العدد الإجمالي للأشخاص مباشرة في بيانات كل مركز، ولا يلزم تسجيل أسماء الفردية.</p>
@@ -1217,7 +1223,16 @@ function App() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {mobileMenuOpen && (
+        <button
+          type="button"
+          className="menu-backdrop"
+          aria-label="إغلاق القائمة"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      <aside id="primary-navigation" className={`sidebar ${mobileMenuOpen ? 'is-open' : ''}`}>
         <div className="brand-block">
           <div className="brand-badge">ن</div>
           <div>
@@ -1232,7 +1247,7 @@ function App() {
               key={item.id}
               type="button"
               className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
-              onClick={() => setCurrentPage(item.id)}
+              onClick={() => selectPage(item.id)}
             >
               <span>{item.icon}</span>
               {item.label}
@@ -1245,6 +1260,17 @@ function App() {
 
       <main className="main-panel">
         <header className="topbar">
+          <button
+            type="button"
+            className="mobile-menu-toggle"
+            aria-label={mobileMenuOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
+            aria-controls="primary-navigation"
+            aria-expanded={mobileMenuOpen}
+            onClick={() => setMobileMenuOpen((open) => !open)}
+          >
+            <span aria-hidden="true">{mobileMenuOpen ? '×' : '☰'}</span>
+            القائمة
+          </button>
           <div>
             <p className="eyebrow">مرحباً</p>
             <h1>{user.name}</h1>
