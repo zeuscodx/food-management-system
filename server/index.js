@@ -728,7 +728,7 @@ app.post('/api/items', requireAuth, requireAdmin, async (req, res) => {
 
   const result = await run(
     'INSERT INTO items (name, code, category, unit, quantity_per_person, min_stock, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [name, code, category || 'عام', unit || 'كيلوجرام', sanitizeNumber(quantity_per_person, 0), sanitizeNumber(min_stock, 0), notes || '', status || 'active'],
+    [name, code, category || 'عام', unit || 'كيس', sanitizeNumber(quantity_per_person, 0), sanitizeNumber(min_stock, 0), notes || '', status || 'active'],
   );
 
   await run(
@@ -751,7 +751,7 @@ app.put('/api/items/:id', requireAuth, requireAdmin, async (req, res) => {
 
   await run(
     'UPDATE items SET name = ?, code = ?, category = ?, unit = ?, quantity_per_person = ?, min_stock = ?, notes = ?, status = ? WHERE id = ?',
-    [name, code, category || 'عام', unit || 'كيلوجرام', sanitizeNumber(quantity_per_person, 0), sanitizeNumber(min_stock, 0), notes || '', status || 'active', id],
+    [name, code, category || 'عام', unit || 'كيس', sanitizeNumber(quantity_per_person, 0), sanitizeNumber(min_stock, 0), notes || '', status || 'active', id],
   );
 
   await run(

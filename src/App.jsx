@@ -42,7 +42,7 @@ const initialItemForm = {
   name: '',
   code: '',
   category: '',
-  unit: 'كيلوجرام',
+  unit: 'كيس',
   quantity_per_person: '',
   min_stock: '',
   notes: '',
@@ -843,7 +843,7 @@ function App() {
                       <td>{item.name}</td>
                       <td>{item.code}</td>
                       <td>{item.category || 'عام'}</td>
-                      <td>{item.unit || 'كيلوجرام'}</td>
+                      <td>{item.unit || 'كيس'}</td>
                       <td>{formatNumber(item.quantity_per_person)}</td>
                       <td>{formatNumber(item.min_stock)}</td>
                       <td><span className={`status-tag ${item.status === 'active' ? 'success' : 'muted'}`}>{item.status === 'active' ? 'نشط' : 'غير نشط'}</span></td>
@@ -1367,14 +1367,12 @@ function App() {
               <input value={itemForm.code} onChange={(e) => setItemForm({ ...itemForm, code: e.target.value })} placeholder="كود الصنف" />
               <input value={itemForm.category} onChange={(e) => setItemForm({ ...itemForm, category: e.target.value })} placeholder="التصنيف" />
               <select value={itemForm.unit} onChange={(e) => setItemForm({ ...itemForm, unit: e.target.value })}>
-                <option value="كيلوجرام">كيلوجرام</option>
-                <option value="جرام">جرام</option>
-                <option value="لتر">لتر</option>
-                <option value="مل">مل</option>
-                <option value="قطعة">قطعة</option>
-                <option value="كرتونة">كرتونة</option>
-                <option value="عبوة">عبوة</option>
-                <option value="صندوق">صندوق</option>
+                <option value="كيس">كيس</option>
+                <option value="كرتون">كرتون</option>
+                <option value="تنك">تنك</option>
+                <option value="شد">شد</option>
+                <option value="جالون">جالون</option>
+                <option value="علبه">علبه</option>
               </select>
               <input type="number" value={itemForm.quantity_per_person} onChange={(e) => setItemForm({ ...itemForm, quantity_per_person: e.target.value })} placeholder="كمية الشخص الواحد" />
               <input type="number" value={itemForm.min_stock} onChange={(e) => setItemForm({ ...itemForm, min_stock: e.target.value })} placeholder="الحد الأدنى" />
